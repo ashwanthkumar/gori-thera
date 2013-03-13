@@ -1,0 +1,101 @@
+#if ($schema.getNamespace())
+package $schema.getNamespace();
+#end
+
+import org.apache.hadoop.hbase.client.Result;
+import java.util.Map;
+import java.util.HashMap;
+
+public class ${this.mangle($schema.getName())}#if ($schema.isError()) extends org.apache.avro.specific.SpecificExceptionBase#else extends org.apache.avro.specific.SpecificRecordBase#end implements org.apache.avro.specific.SpecificRecord {
+    public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("${this.javaEscape($schema.toString())}");
+    public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
+
+    public org.apache.avro.Schema getSchema() { return SCHEMA$; }
+
+#foreach ($field in $schema.getFields())
+    private ${this.javaUnbox($field.schema())} ${this.mangle($field.name(), $schema.isError())};
+#end
+
+    private Result hbaseRow;
+    public Result getHBaseRow() {
+        return hbaseRow;
+    }
+    public void setHBaseRow(Result hbaseRow) {
+        this.hbaseRow = hbaseRow;
+    }
+
+
+    // Used by DatumWriter.  Applications should not call.
+    public java.lang.Object get(int field$) {
+        switch (field$) {
+#set ($i = 0)
+#foreach ($field in $schema.getFields())
+            case $i:
+                return ${this.mangle($field.name(), $schema.isError())};
+#set ($i = $i + 1)
+#end
+            default:
+                throw new org.apache.avro.AvroRuntimeException("Bad index");
+        }
+    }
+
+    // Used by DatumReader.  Applications should not call.
+    @SuppressWarnings(value="unchecked")
+    public void put(int field$, java.lang.Object value$) {
+        switch (field$) {
+#set ($i = 0)
+#foreach ($field in $schema.getFields())
+            case $i:
+                ${this.mangle($field.name(), $schema.isError())} = (${this.javaType($field.schema())})value$; break;
+#set ($i = $i + 1)
+#end
+            default:
+                throw new org.apache.avro.AvroRuntimeException("Bad index");
+        }
+    }
+
+#foreach ($field in $schema.getFields())
+    /**
+     * Gets the value of the '${this.mangle($field.name(), $schema.isError())}' field.
+#if ($field.doc())   * $field.doc()#end
+     */
+    public ${this.javaType($field.schema())} ${this.generateGetMethod($schema, $field)}() {
+        return ${this.mangle($field.name(), $schema.isError())};
+    }
+
+    /**
+     * Sets the value of the '${this.mangle($field.name(), $schema.isError())}' field.
+#if ($field.doc())   * $field.doc()#end
+     *
+     * @param value the value to set.
+     */
+    public void ${this.generateSetMethod($schema, $field)}(${this.javaType($field.schema())} value) {
+        this.${this.mangle($field.name(), $schema.isError())} = value;
+    }
+#end
+
+    /*
+        Utility class for dealing with Versions
+    */
+    public class Versioned<T> {
+        private Map<Long, T> versionedMap = new HashMap<Long, T>();
+
+        public T at(long timestamp) {
+            return versionedMap.get(timestamp);
+        }
+
+        public Versioned<T> add(T value, long at) {
+            versionedMap.put(at, value);
+            return this;
+        }
+
+        public Iterable<T> values() {
+            return versionedMap.values();
+        }
+
+        public Iterable<Long> timestamps() {
+            return versionedMap.keySet();
+        }
+    }
+
+}

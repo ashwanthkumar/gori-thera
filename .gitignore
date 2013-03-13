@@ -1,3 +1,7 @@
+# IDEA related projects
 .idea/
+*iml
+
+# Build related
 target/
 
